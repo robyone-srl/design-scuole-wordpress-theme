@@ -91,7 +91,8 @@ if(is_array($tipologie_notizie) && count($tipologie_notizie)){
                     if((count($tipologie_notizie) == 1) && ($column > 1))
                          echo '</div>';
 
-                    $set_card_top_margin = true;
+                    if(count($tipologie_notizie) > 1)
+                        $set_card_top_margin = true;
                 }
 
                 if((count($tipologie_notizie) == 1) && ($column > 1))
