@@ -1071,6 +1071,7 @@ function dsi_create_pages_on_theme_activation() {
     $admins->add_cap( "create_roles");
     $admins->add_cap( "edit_roles");
     $admins->add_cap( "delete_roles");
+    $admins->add_cap( "manage_theme_config");
 
     //TODO: ricordarsi di aggiungere restrict_content per i ruoli abilitati
 
@@ -1127,4 +1128,112 @@ function dsi_reload_theme_option_page() {
 
     echo '<a href="themes.php?page=reload-data-theme-options&action=reload" class="button button-primary">Ricarica i dati di attivazione (menu, tipologie, etc)</a>';
     echo "</div>";
+}
+
+function dsi_check_and_transfer_document_attachments_data_page() {
+    add_theme_page( 'Correggi allegati documenti', 'Correggi allegati documenti', 'edit_theme_options', 'fix-document-attachments-data', 'dsi_fix_document_attachments_data_page' );
+}
+add_action( 'admin_menu', 'dsi_add_update_theme_page' );
+
+add_theme_page( 'Correggi allegati documenti', 'Correggi allegati documenti', 'edit_theme_options', 'fix-document-attachments-data', 'dsi_fix_document_attachments_data_page' );
+
+function dsi_fix_document_attachments_data_page() {
+    if(isset($_GET["action"]) && $_GET["action"] == "reload"){
+        $results = dsi_fix_document_attachments_data();
+    
+    	echo "<div class='wrap'>";
+    	echo '<h1>Controlla e correggi link ai file allegati dei documenti</h1>';
+    	echo '<h2>Risultati</h2>';
+    	echo $results;
+    	echo "</div>";
+    } else if(isset($_GET["action"]) && $_GET["action"] == "get_urls"){
+        $results = dsi_get_urls_from_post_details();
+    	$siteurl = str_replace("https://", "", str_replace("http://", "", site_url()));
+    
+    	echo "<div class='wrap'>";
+    	echo '<h1>Controlla e correggi link ai file allegati dei documenti</h1>';
+    	echo '<h2>Ottieni URL da dettaglio post (solo con lo stesso dominio - ' . $siteurl .')</h2>';
+    
+    	echo '<h3>Lista URL interni</h3>';
+    	if(count($results)) {
+        	foreach($results as $result) {
+            	if (str_starts_with(str_replace("https://", "", str_replace("http://", "", $result)), $siteurl))
+            		echo $result . "<br />";
+            }
+        }
+    	echo "</div>";
+    } else {
+    	echo "<div class='wrap'>";
+    	echo '<h1>Controlla e correggi link ai file allegati dei documenti</h1>';
+
+    	echo '<a href="themes.php?page=fix-document-attachments-data&action=reload" class="button button-primary">Procedi al controllo e conseguenti correzioni</a>';
+    	echo '<a href="themes.php?page=fix-document-attachments-data&action=get_urls" class="button button-primary">Ottieni URL da dettaglio documenti</a>';
+    	echo "</div>";
+    }
+
+}
+
+function dsi_fix_document_attachments_data() {
+	$results = '';
+
+	$args = array(
+        'post_type'=>'attachment',
+        'posts_per_page'=>-1,
+        'post_parent__not_in' => array(0)
+	);
+
+	$attachments = get_posts($args);
+
+	foreach( $attachments as $attachment ) { 
+    	$post_parent = get_post($attachment->post_parent);
+    
+    	if($post_parent->post_type == 'documento') {
+        	
+       		$resultitem = $post_parent->ID . " - " .  $post_parent->post_title . '<br />';
+    
+    		$files = get_post_meta( $post_parent->ID, '_dsi_documento_file_documenti' );
+    
+        	if(count($files) && is_array($files[0]))
+    			$resultitem .= count($files[0]) . ' allegati presenti<br />'; 
+        	else $resultitem .= '0 allegati presenti<br />'; 
+        
+    
+    		if (count($files) && is_array($files[0]) && in_array($attachment->guid, $files[0])) {
+    		 	$resultitem .= 'Nessun inserimento necessario' . '<br />';
+            } else {
+    		 	$resultitem .= "NUOVO - ". $attachment->ID . " - " .  $attachment->post_title . '<br />';
+            	if(!count($files) || !is_array($files[0])) $files = array(array());
+        	 	$files[0][$attachment->ID] = $attachment->guid;
+            
+    		 	update_post_meta( $post_parent->ID, '_dsi_documento_file_documenti', $files[0] );
+			}
+        
+    		$results .= $resultitem . "<br />";
+        }
+    }
+
+	return $results;
+}
+
+
+function dsi_get_urls_from_post_details() {
+	$results = array();
+
+	$args = array(
+        'post_type'=>'documento',
+        'posts_per_page'=>-1
+	);
+
+	$documenti = get_posts($args);
+
+	foreach( $documenti as $documento ) { 
+		preg_match_all('#\bhttps?://[^,\s()<>]+(?:\([\w\d]+\)|([^,[:punct:]\s]|/))#', $documento->post_content, $match);
+    
+    	$iddoc = $documento->ID;
+    
+    	foreach($match[0] as $smatch) 
+        	$results[$iddoc] = $smatch;
+    }
+
+	return $results;
 }
