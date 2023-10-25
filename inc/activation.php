@@ -1,5 +1,6 @@
 <?php
 
+
 /**
  * Action to add page templates used by theme
  */
@@ -1138,38 +1139,63 @@ add_action( 'admin_menu', 'dsi_add_update_theme_page' );
 add_theme_page( 'Correggi allegati documenti', 'Correggi allegati documenti', 'edit_theme_options', 'fix-document-attachments-data', 'dsi_fix_document_attachments_data_page' );
 
 function dsi_fix_document_attachments_data_page() {
+	echo "<div class='wrap'>";
+	echo '<h1>Funzioni di ripristino allegati</h1>';
+
     if(isset($_GET["action"]) && $_GET["action"] == "reload"){
         $results = dsi_fix_document_attachments_data();
-    
-    	echo "<div class='wrap'>";
-    	echo '<h1>Controlla e correggi link ai file allegati dei documenti</h1>';
-    	echo '<h2>Risultati</h2>';
+    	echo '<h2>Risultati funzione "Correggi"</h2>';
     	echo $results;
-    	echo "</div>";
+    } else if(isset($_GET["action"]) && $_GET["action"] == "set_urls_found"){
+        $results = dsi_fix_document_attachments_in_content_data();
+    	echo '<h2>Risultati funzione "Correggi da contenuto"</h2>';
+    	echo $results;
+    } else if(isset($_GET["action"]) && $_GET["action"] == "update_upload_dir"){
+        $results = dsi_fix_attachments_upload_url();
+    	echo '<h2>Risultati funzione "Correggi cartella upload"</h2>';
+    	echo $results;
     } else if(isset($_GET["action"]) && $_GET["action"] == "get_urls"){
-        $results = dsi_get_urls_from_post_details();
-    	$siteurl = str_replace("https://", "", str_replace("http://", "", site_url()));
+        $return_data = dsi_get_urls_from_post_details();
+    	$old_uploads_url = str_replace("https://", "", str_replace("http://", "", $return_data["old_uploads_url"]));
     
-    	echo "<div class='wrap'>";
-    	echo '<h1>Controlla e correggi link ai file allegati dei documenti</h1>';
-    	echo '<h2>Ottieni URL da dettaglio post (solo con lo stesso dominio - ' . $siteurl .')</h2>';
+    	echo '<h2>Risultati URL da dettaglio post (che iniziano con http/https ' . $old_uploads_url  .')</h2>';
     
-    	echo '<h3>Lista URL interni</h3>';
-    	if(count($results)) {
-        	foreach($results as $result) {
-            	if (str_starts_with(str_replace("https://", "", str_replace("http://", "", $result)), $siteurl))
+    	echo '<h3>Lista URL uploads</h3>';
+    	if(count($return_data["results"])) {
+        	foreach($return_data["results"] as $result) {
+            	if (str_starts_with($result, "https://" . $old_uploads_url) || str_starts_with($result, "http://" . $old_uploads_url))
             		echo $result . "<br />";
             }
         }
-    	echo "</div>";
-    } else {
-    	echo "<div class='wrap'>";
-    	echo '<h1>Controlla e correggi link ai file allegati dei documenti</h1>';
-
-    	echo '<a href="themes.php?page=fix-document-attachments-data&action=reload" class="button button-primary">Procedi al controllo e conseguenti correzioni</a>';
-    	echo '<a href="themes.php?page=fix-document-attachments-data&action=get_urls" class="button button-primary">Ottieni URL da dettaglio documenti</a>';
-    	echo "</div>";
+    	echo '<h3>Tutti gli URL trovati</h3>';
+    	if(count($return_data["results"])) {
+        	foreach($return_data["results"] as $result) {
+            		echo $result . "<br />";
+            }
+        }
     }
+
+
+    echo '<h2>Metodi disponibili</h2>';
+
+
+    echo '<h4>Controllo e correzione da contenuto post_type</h4>';
+    
+	$old_uploads_url = wp_get_upload_dir()["baseurl"];
+	if(isset($_GET["old_uploads_url"])) $old_uploads_url = $_GET["old_uploads_url"];
+
+	echo "<p>Il metodo di ottenimento URL controlla il contenuto dei post-type documenti e ne ricava gli URL; quello di correzione va a inserire come allegati i link presenti nel contenuto</p>";
+    echo '<form method="get" action="themes.php">';
+    echo '<label for="old_uploads_url">URL vecchio sito web</label> <input type="text" style="min-width:50%" id="old_uploads_url" name="old_uploads_url" value="' . $old_uploads_url  . '" /><input type="hidden" name="page" id="page" value="fix-document-attachments-data" />';
+    echo '<br /><select id="action" name="action"><option value="get_urls">Controllo</option><option value="update_upload_dir">Correggi cartella upload POSTS</option><option value="set_urls_found">Correggi da contenuto</option></select>';
+	echo '<br /><button type="submit" class="button button-primary">Procedi</button></form><br /><br />';
+
+    echo '<h4>Correzione</h4>';
+
+	echo "<p>Il metodo di correzione controlla che tutte le relazioni tra i file e i documenti siano inserite nel campo allegati, nel caso contrario le inserisce</p>";
+    echo '<a href="themes.php?page=fix-document-attachments-data&action=reload" class="button button-primary">Correggi allegati</a><br /><br />';
+
+    echo "</div>";
 
 }
 
@@ -1216,9 +1242,100 @@ function dsi_fix_document_attachments_data() {
 }
 
 
-function dsi_get_urls_from_post_details() {
-	$results = array();
+function dsi_fix_attachments_upload_url() {
+	$old_uploads_url = $_GET["old_uploads_url"];
+	$new_uploads_url = wp_get_upload_dir()["baseurl"] ."/";
+	$results = '';
 
+    $results .=  $old_uploads_url . "<br />";
+    $results .=  $new_uploads_url . "<br />";
+
+	global $wpdb;
+
+	$result = $wpdb->get_results("UPDATE wp_posts SET post_content = REGEXP_REPLACE(post_content, '" . $old_uploads_url . "([0-9]{4})/([0-9]{2})/', '". $new_uploads_url ."2023/10/') WHERE post_content REGEXP '" . $old_uploads_url . "([0-9]{4})/([0-9]{2})/'");
+	$result2 = $wpdb->get_results("UPDATE wp_posts SET guid = REGEXP_REPLACE(guid, '" . $old_uploads_url . "([0-9]{4})/([0-9]{2})/', '". $new_uploads_url ."2023/10/') WHERE guid REGEXP '" . $old_uploads_url . "([0-9]{4})/([0-9]{2})/'");
+	$result3 = $wpdb->get_results("UPDATE wp_links SET link_url = REGEXP_REPLACE(link_url, '" . $old_uploads_url . "([0-9]{4})/([0-9]{2})/', '". $new_uploads_url ."2023/10/') WHERE link_url REGEXP '" . $old_uploads_url . "([0-9]{4})/([0-9]{2})/'");
+	$result4 = $wpdb->get_results("UPDATE wp_postmeta SET meta_value = REGEXP_REPLACE(meta_value, '" . $old_uploads_url . "([0-9]{4})/([0-9]{2})/', '". $new_uploads_url ."2023/10/') WHERE meta_value REGEXP '" . $old_uploads_url . "([0-9]{4})/([0-9]{2})/'");
+
+	$args = array(
+        'post_type'=>'attachment',
+        'posts_per_page'=>-1
+	);
+
+	$attachments = get_posts($args);
+
+	foreach( $attachments as $attachment ) { 
+    
+    	$meta = wp_get_attachment_metadata($attachment->ID);
+    	if(isset($meta["sizes"]))
+    		unset($meta["sizes"]);
+    
+    	wp_update_attachment_metadata( $attachment->ID, $meta );
+    }
+
+	return $results;
+}
+
+function dsi_fix_document_attachments_in_content_data() {
+	$old_uploads_url = $_GET["old_uploads_url"];
+	$results = '';
+
+	$args = array(
+        'post_type'=>'documento',
+        'posts_per_page'=>-1,
+		'meta_key' => '_dsi_documento_is_amministrazione_trasparente',
+		'meta_value' => 'true', // change to how "event date" is stored
+		'meta_compare' => '=',
+	);
+
+	$atdocs = get_posts($args);
+
+	foreach( $atdocs as $atdoc ) { 
+    	preg_match_all('#\bhttps?://[^,\s()<>]+(?:\([\w\d]+\)|([^,[:punct:]\s]|/))#', $atdoc->post_content, $match);
+    
+    	if($match) {
+        	$resultitem = $atdoc->ID . " - " .  $atdoc->post_title . '<br />';
+        
+        	$files = get_post_meta( $atdoc->ID, '_dsi_documento_file_documenti' );
+        
+        	if(count($files) && is_array($files[0]))
+    			$resultitem .= count($files[0]) . ' allegati presenti<br />'; 
+        	else $resultitem .= '0 allegati presenti<br />'; 
+        
+        	foreach($match[0] as $smatch) {
+            	$smatch = str_replace("http://", "https://", $smatch);
+            	if (str_starts_with($smatch, $old_uploads_url)) {
+                
+                	$fileid = attachment_url_to_postid($smatch);
+                	
+                	if($fileid == 0) {
+                    	$resultitem .= 'File non trovato' . $smatch;
+                    } else {
+    					if (count($files) && is_array($files[0]) && in_array($smatch, $files[0])) {
+                			$resultitem .= 'Nessun inserimento necessario' . '<br />';
+            			} else {
+                			$resultitem .= "NUOVO ". $fileid . " - " . $smatch . '<br />';
+                			if(!count($files) || !is_array($files[0])) $files = array(array());
+                				$files[0][$fileid] = $smatch;
+
+                			update_post_meta( $atdoc->ID, '_dsi_documento_file_documenti', $files[0] );
+            			}		
+                    }
+            	}
+        	}
+        
+    		$results .= $resultitem . "<br />";
+        }
+    }
+
+	return $results;
+}
+
+
+function dsi_get_urls_from_post_details() {
+	$old_uploads_url = $_GET["old_uploads_url"];
+	$return_data = [ 'old_uploads_url' => $old_uploads_url, 'results' => array() ];
+    
 	$args = array(
         'post_type'=>'documento',
         'posts_per_page'=>-1
@@ -1232,8 +1349,8 @@ function dsi_get_urls_from_post_details() {
     	$iddoc = $documento->ID;
     
     	foreach($match[0] as $smatch) 
-        	$results[$iddoc] = $smatch;
+        	$return_data['results'][$iddoc] = $smatch;
     }
 
-	return $results;
+	return $return_data;
 }
