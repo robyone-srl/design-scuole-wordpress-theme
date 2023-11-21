@@ -1252,10 +1252,10 @@ function dsi_fix_attachments_upload_url() {
 
 	global $wpdb;
 
-	$result = $wpdb->get_results("UPDATE wp_posts SET post_content = REGEXP_REPLACE(post_content, '" . $old_uploads_url . "([0-9]{4})/([0-9]{2})/', '". $new_uploads_url ."2023/10/') WHERE post_content REGEXP '" . $old_uploads_url . "([0-9]{4})/([0-9]{2})/'");
-	$result2 = $wpdb->get_results("UPDATE wp_posts SET guid = REGEXP_REPLACE(guid, '" . $old_uploads_url . "([0-9]{4})/([0-9]{2})/', '". $new_uploads_url ."2023/10/') WHERE guid REGEXP '" . $old_uploads_url . "([0-9]{4})/([0-9]{2})/'");
-	$result3 = $wpdb->get_results("UPDATE wp_links SET link_url = REGEXP_REPLACE(link_url, '" . $old_uploads_url . "([0-9]{4})/([0-9]{2})/', '". $new_uploads_url ."2023/10/') WHERE link_url REGEXP '" . $old_uploads_url . "([0-9]{4})/([0-9]{2})/'");
-	$result4 = $wpdb->get_results("UPDATE wp_postmeta SET meta_value = REGEXP_REPLACE(meta_value, '" . $old_uploads_url . "([0-9]{4})/([0-9]{2})/', '". $new_uploads_url ."2023/10/') WHERE meta_value REGEXP '" . $old_uploads_url . "([0-9]{4})/([0-9]{2})/'");
+	$result = $wpdb->get_results("UPDATE wp_posts SET post_content = REGEXP_REPLACE(post_content, '" . $old_uploads_url . "([0-9]{4})/([0-9]{2})/', '". $new_uploads_url ."2023/11/') WHERE post_content REGEXP '" . $old_uploads_url . "([0-9]{4})/([0-9]{2})/'");
+	$result2 = $wpdb->get_results("UPDATE wp_posts SET guid = REGEXP_REPLACE(guid, '" . $old_uploads_url . "([0-9]{4})/([0-9]{2})/', '". $new_uploads_url ."2023/11/') WHERE guid REGEXP '" . $old_uploads_url . "([0-9]{4})/([0-9]{2})/'");
+	$result3 = $wpdb->get_results("UPDATE wp_links SET link_url = REGEXP_REPLACE(link_url, '" . $old_uploads_url . "([0-9]{4})/([0-9]{2})/', '". $new_uploads_url ."2023/11/') WHERE link_url REGEXP '" . $old_uploads_url . "([0-9]{4})/([0-9]{2})/'");
+	$result4 = $wpdb->get_results("UPDATE wp_postmeta SET meta_value = REGEXP_REPLACE(meta_value, '" . $old_uploads_url . "([0-9]{4})/([0-9]{2})/', '". $new_uploads_url ."2023/11/') WHERE meta_value REGEXP '" . $old_uploads_url . "([0-9]{4})/([0-9]{2})/'");
 
 	$args = array(
         'post_type'=>'attachment',
@@ -1278,7 +1278,14 @@ function dsi_fix_attachments_upload_url() {
 
 function dsi_fix_document_attachments_in_content_data() {
 	$old_uploads_url = $_GET["old_uploads_url"];
+	$new_uploads_url = wp_get_upload_dir()["baseurl"] ."/2023/11/";
 	$results = '';
+	$notfoundoldurl = '';
+	$notfoundnewurl = '';
+
+    $results .=  $old_uploads_url . "<br />";
+    $results .=  $new_uploads_url . "<br /><br /><br />";
+
 
 	$args = array(
         'post_type'=>'documento',
@@ -1298,25 +1305,37 @@ function dsi_fix_document_attachments_in_content_data() {
         
         	$files = get_post_meta( $atdoc->ID, '_dsi_documento_file_documenti' );
         
+        
         	if(count($files) && is_array($files[0]))
     			$resultitem .= count($files[0]) . ' allegati presenti<br />'; 
         	else $resultitem .= '0 allegati presenti<br />'; 
         
         	foreach($match[0] as $smatch) {
             	$smatch = str_replace("http://", "https://", $smatch);
+            
+            	$smatch = str_replace('"', '', $smatch);
+
             	if (str_starts_with($smatch, $old_uploads_url)) {
+                	$newurl = $new_uploads_url . basename($smatch);
                 
-                	$fileid = attachment_url_to_postid($smatch);
+                	//if (str_starts_with($smatch, $old_uploads_url . '/AllegatiAttiAlboPretorio/')) 
+                    //	$newurl = wp_get_upload_dir()["baseurl"] ."/AllegatiAttiAlboPretorio/" . basename($smatch);
+                
+                	$fileid = attachment_url_to_postid($newurl);
                 	
                 	if($fileid == 0) {
-                    	$resultitem .= 'File non trovato' . $smatch;
+
+                    	var_dump($match);
+                    	$resultitem .= 'File non trovato' . $newurl;
+                    	$notfoundoldurl .= $smatch . '<br />';
+                    	$notfoundnewurl .= $newurl . '<br />';
                     } else {
-    					if (count($files) && is_array($files[0]) && in_array($smatch, $files[0])) {
+    					if (count($files) && is_array($files[0]) && in_array($newurl, $files[0])) {
                 			$resultitem .= 'Nessun inserimento necessario' . '<br />';
             			} else {
-                			$resultitem .= "NUOVO ". $fileid . " - " . $smatch . '<br />';
+                			$resultitem .= "NUOVO ". $fileid . " - " . $newurl . '<br />';
                 			if(!count($files) || !is_array($files[0])) $files = array(array());
-                				$files[0][$fileid] = $smatch;
+                				$files[0][$fileid] = $newurl;
 
                 			update_post_meta( $atdoc->ID, '_dsi_documento_file_documenti', $files[0] );
             			}		
@@ -1327,6 +1346,9 @@ function dsi_fix_document_attachments_in_content_data() {
     		$results .= $resultitem . "<br />";
         }
     }
+
+	$results .= "<br />Non trovati (vecchio URL):<br />" . $notfoundoldurl;
+	$results .= "<br />Non trovati (nuovo URL):<br />" . $notfoundnewurl;
 
 	return $results;
 }
