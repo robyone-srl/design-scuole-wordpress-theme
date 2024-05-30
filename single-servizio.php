@@ -88,7 +88,7 @@ get_header();
                             <?php
                                 if($scuola_responsabile) {
                                     ?>
-                                    <small class="h6 text-purplelight text-uppercase"><?php echo get_the_title($scuola_responsabile); ?></small>
+                                    <small class="h6 text-purplelight"><?php echo get_the_title($scuola_responsabile); ?></small>
                                     <?php
                                 }
                                     ?>

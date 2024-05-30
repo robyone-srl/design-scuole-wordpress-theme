@@ -103,7 +103,7 @@ $user_can_view_post = dsi_members_can_user_view_post(get_current_user_id(), $pos
                                     $codice_meccanografico = dsi_get_meta("codice_meccanografico");
                                     if($codice_meccanografico) {
                                         ?>
-                                        <br><small class="h7 text-redbrown text-uppercase"><strong>Codice Meccanografico: </strong><?php echo $codice_meccanografico; ?></small>
+                                        <br><small class="h7 text-redbrown"><strong>Codice meccanografico: </strong><?php echo $codice_meccanografico; ?></small>
                                         <?php
                                     }
                                 } ?>
