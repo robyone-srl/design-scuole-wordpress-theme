@@ -68,8 +68,8 @@ if(is_search() || is_archive())
 
 <?php $active_page = dsi_get_current_group(); ?>
 <div id="main-wrapper" class="push_container">
-    <?php get_template_part("template-parts/common/skiplink"); ?>
     <header id="main-header" class="bg-white">
+        <?php get_template_part("template-parts/common/skiplink"); ?>
         <?php get_template_part("template-parts/header/slimheader"); ?>
         <div class="container header-top">
             <div class="row variable-gutters">
@@ -81,7 +81,7 @@ if(is_search() || is_archive())
                     </button>
                     <!-- Left menu element-->
                     <div class="cbp-spmenu cbp-spmenu-vertical cbp-spmenu-left perfect-scrollbar">
-                    <a href="<?php echo home_url(); ?>" aria-label="Vai alla homepage" title="Vai alla homepage" class="logo-header">
+                    <a href="<?php echo home_url(); ?>" title="Vai alla pagina iniziale" class="logo-header">
                             <?php get_template_part("template-parts/common/logo"); ?>
                             <div class="h1">
                                     <span><?php echo dsi_get_option("tipologia_scuola"); ?></span>
@@ -222,7 +222,7 @@ if(is_search() || is_archive())
                         </div>
                     </div>
                     <!-- End Left menu element-->
-                    <a href="<?php echo home_url(); ?>" aria-label="Vai alla homepage" title="Vai alla homepage" class="logo-header">
+                    <a href="<?php echo home_url(); ?>" title="Vai alla pagina iniziale" class="logo-header">
                             <?php get_template_part("template-parts/common/logo"); ?>
                             <div class="h1">
                                     <span><?php echo dsi_get_option("tipologia_scuola"); ?></span>
