@@ -495,3 +495,19 @@ function rest_remove_extra_user_data($response, $user, $request) {
 	return $response;
 }
 add_filter("rest_prepare_user", "rest_remove_extra_user_data", 12, 3);
+
+//riscrivi il meta title nella pagina dei risultati della ricerca
+function custom_search_title($title) {
+    if ( is_search() ) {
+        // Get the search query
+        $search_query = get_search_query();
+
+        if ( empty($search_query) ) {
+            $title['title'] = esc_html__('Risultati della ricerca', 'design_scuole_italia'); 
+        } else {
+            $title['title'] = sprintf(esc_html__('Risultati della ricerca per "%s"', 'design_scuole_italia'), $search_query);
+        }
+	}
+    return $title;
+}
+add_filter('document_title_parts', 'custom_search_title');
