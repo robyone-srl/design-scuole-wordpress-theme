@@ -424,7 +424,9 @@ function reserved_file_check(){
 		$upload   = wp_get_upload_dir();
 		$baseurl  = $upload['baseurl'];
 		$basedir  = $upload['basedir'];
-		$filepath = $basedir . '/' . $_GET['file'];
+		$file = sanitize_text_field(wp_unslash($_GET['file'] ?? ''));
+		$filepath = $basedir . '/' . $file;
+		
 
 		$realbasedir = realpath( $basedir );
 		$realpath    = realpath( $filepath );
@@ -432,6 +434,10 @@ function reserved_file_check(){
 		if ( $realpath === false || $realbasedir === false ||
 		     strncmp( $realpath, $realbasedir . DIRECTORY_SEPARATOR, strlen( $realbasedir ) + 1 ) !== 0 ) {
 			wp_die( '', '', [ 'response' => 404 ] );
+		}
+
+		if (!is_file($realpath)) {
+			wp_die('', '', ['response' => 404]);
 		}
 
 		$relative = substr( $realpath, strlen( $realbasedir ) + 1 );
@@ -447,7 +453,7 @@ function reserved_file_check(){
 				wp_die( '', '', [ 'response' => 403 ] );
 		}
 
-		if ( file_exists( $realpath ) ) {
+		if ( is_file( $realpath ) ) {
 			$_mime = mime_content_type( $realpath );
 			$_inline_types = [
 				'application/pdf',
