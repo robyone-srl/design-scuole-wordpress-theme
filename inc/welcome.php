@@ -166,6 +166,24 @@ function dsi_circolari_signed_dashboard_widget() {
     echo "</div>";
 }
 
+add_action('wp_dashboard_setup', function () {
+
+    if (current_user_can('administrator')) {
+        return;
+    }
+
+    $widgets = [
+        'wp_toolkit_dashboard_security_risk_widget',
+        'wp_toolkit_attacks_widget',
+    ];
+
+    foreach ($widgets as $widget) {
+        remove_meta_box($widget, 'dashboard', 'normal');
+        remove_meta_box($widget, 'dashboard', 'side');
+    }
+
+}, 999);
+
 function dsi_circolari_not_signed_dashboard_widget() {
     $user = wp_get_current_user();
 
