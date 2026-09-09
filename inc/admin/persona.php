@@ -113,6 +113,22 @@ add_filter('get_avatar', 'remove_avatar_from_users_list');
 
 
 /**
+ * Ruolo nell'organizzazione e appartenenze alle strutture sono dati
+ * istituzionali: solo chi può modificare gli utenti può assegnarli.
+ * Senza questo controllo un utente base, dal proprio profilo, può
+ * autopromuoversi (issue #656).
+ */
+function dsi_current_user_can_manage_persona_ruoli() {
+	return current_user_can( 'edit_users' );
+}
+
+function dsi_persona_organizzazione_field( $field ) {
+	$field['show_on_cb'] = 'dsi_current_user_can_manage_persona_ruoli';
+	$field['save_field']  = dsi_current_user_can_manage_persona_ruoli();
+	return $field;
+}
+
+/**
  * Crea i metabox dello user
  */
 add_action('cmb2_init', 'dsi_add_persone_metaboxes');
@@ -180,7 +196,7 @@ function dsi_add_persone_metaboxes()
 		'type'    => 'file'
 	) );
 
-	$cmb_user->add_field( array(
+	$cmb_user->add_field( dsi_persona_organizzazione_field( array(
 		'name'    => __( 'Ruolo nell\'organizzazione *', 'design_scuole_italia' ),
 		'desc'    => __( 'Dirigente / Personale docente / Personale non docente', 'design_scuole_italia' ),
 		'id'      => $prefix . 'ruolo_scuola',
@@ -193,12 +209,12 @@ function dsi_add_persone_metaboxes()
 			'personaleata'   => __('Personale non docente', 'design_scuole_italia'),
 			'altro'   => __('Altro', 'design_scuole_italia')
 
-		),
-	));
+        ),
+	) ) );
 
-	$cmb_user->add_field(array(
-		'name'    => __('Ruolo Docente', 'design_scuole_italia'),
-		'desc'    => __('Seleziona la tipologia di ruolo docente', 'design_scuole_italia'),
+	$cmb_user->add_field( dsi_persona_organizzazione_field( array(
+		'name'    => __( 'Ruolo Docente', 'design_scuole_italia' ),
+		'desc'    => __( 'Seleziona la tipologia di ruolo docente', 'design_scuole_italia' ),
 		'id'      => $prefix . 'ruolo_docente',
 		'type'             => 'select',
 		'show_option_none' => true,
@@ -213,10 +229,11 @@ function dsi_add_persone_metaboxes()
 			'data-conditional-id'     => $prefix . 'ruolo_scuola',
 			'data-conditional-value'  => 'docente',
 		),
-	));
-	$cmb_user->add_field(array(
-		'name'    => __('Incarico', 'design_scuole_italia'),
-		'desc'    => __('Se docente: con incarico a tempo determinato/indeterminato', 'design_scuole_italia'),
+	) ) );
+	
+	$cmb_user->add_field( dsi_persona_organizzazione_field( array(
+		'name'    => __( 'Incarico', 'design_scuole_italia' ),
+		'desc'    => __( 'Se docente: con incarico a tempo determinato/indeterminato', 'design_scuole_italia' ),
 		'id'      => $prefix . 'incarico_docente',
 		'type'             => 'select',
 		'show_option_none' => true,
@@ -228,10 +245,10 @@ function dsi_add_persone_metaboxes()
 			'data-conditional-id'     => $prefix . 'ruolo_scuola',
 			'data-conditional-value'  => 'docente',
 		),
-	));
+	) ) );
 
-	$cmb_user->add_field(array(
-		'name'    => __('Durata Incarico', 'design_scuole_italia'),
+	$cmb_user->add_field( dsi_persona_organizzazione_field( array(
+		'name'    => __( 'Durata Incarico', 'design_scuole_italia' ),
 		'id'      => $prefix . 'durata_incarico_docente',
 		'desc'    => __('Se docente a tempo determinato, prevedere data scadenza incarico', 'design_scuole_italia'),
 		'type' => 'text_date',
@@ -240,11 +257,11 @@ function dsi_add_persone_metaboxes()
 			'data-conditional-id'     => $prefix . 'incarico_docente',
 			'data-conditional-value'  => 'determinato',
 		),
-	));
+	) ) );
 
-	$cmb_user->add_field(array(
-		'name'    => __('Tipo posto', 'design_scuole_italia'),
-		'desc'    => __('Nomale / Sostegno', 'design_scuole_italia'),
+	$cmb_user->add_field( dsi_persona_organizzazione_field( array(
+		'name'    => __( 'Tipo posto', 'design_scuole_italia' ),
+		'desc'    => __( 'Nomale / Sostegno', 'design_scuole_italia' ),
 		'id'      => $prefix . 'tipo_posto',
 		'type'             => 'select',
 		'show_option_none' => true,
@@ -256,7 +273,7 @@ function dsi_add_persone_metaboxes()
 			'data-conditional-id'     => $prefix . 'incarico_docente',
 			'data-conditional-value'  => 'determinato',
 		),
-	));
+	) ) );
 
 
 	/*
@@ -290,9 +307,9 @@ function dsi_add_persone_metaboxes()
         ),
     ) );
 */
-	$cmb_user->add_field(array(
-		'name'    => __('Tipologia personale non docente', 'design_scuole_italia'),
-		'desc'    => __('Seleziona la tipologia di ruolo', 'design_scuole_italia'),
+	$cmb_user->add_field( dsi_persona_organizzazione_field( array(
+		'name'    => __( 'Tipologia personale non docente', 'design_scuole_italia' ),
+		'desc'    => __( 'Seleziona la tipologia di ruolo', 'design_scuole_italia' ),
 		'id'      => $prefix . 'ruolo_non_docente',
 		'type'             => 'select',
 		'show_option_none' => true,
@@ -306,63 +323,63 @@ function dsi_add_persone_metaboxes()
 			'data-conditional-id'     => $prefix . 'ruolo_scuola',
 			'data-conditional-value'  => wp_json_encode(array('personaleata'))
 		),
-	));
+	) ) );
 
-	$cmb_user->add_field(array(
+	$cmb_user->add_field( dsi_persona_organizzazione_field( array(
 		'id' => $prefix . 'altri_ruoli_struttura_responsabile',
 		'name'    => __('Altri ruoli - Responsabile strutture organizzative ', 'design_scuole_italia'),
 		'desc' => __('Altre strutture organizzative di cui è responsabile (Es. consiglio di istituto). Seleziona una struttura organizzativa. Se non la trovi inseriscila <a href="post-new.php?post_type=struttura">cliccando qui</a> ', 'design_scuole_italia'),
 		'type'    => 'pw_multiselect',
-		'options' => dsi_get_strutture_options(),
-		'attributes' => array(
-			'placeholder' =>  __('Seleziona una o più strutture', 'design_scuole_italia'),
-		),
-	));
+    	'options' => dsi_get_strutture_options(),
+            'attributes' => array(
+                'placeholder' =>  __( 'Seleziona una o più strutture', 'design_scuole_italia' ),
+            ),
+	) ) );
 
 
-	$cmb_user->add_field(array(
+	$cmb_user->add_field( dsi_persona_organizzazione_field( array(
 		'id' => $prefix . 'altri_ruoli_struttura',
 		'name'    => __('Altri ruoli - Componente strutture organizzative ', 'design_scuole_italia'),
 		'desc' => __('Altre strutture organizzative di cui fa parte (Es. consiglio di istituto). Seleziona una struttura organizzativa. Se non la trovi inseriscila <a href="post-new.php?post_type=struttura">cliccando qui</a> ', 'design_scuole_italia'),
 		'type'    => 'pw_multiselect',
-		'options' => dsi_get_strutture_options(),
-		'attributes' => array(
-			'placeholder' =>  __('Seleziona una o più strutture', 'design_scuole_italia'),
-		),
-	));
+   		'options' => dsi_get_strutture_options(),
+            'attributes' => array(
+                'placeholder' =>  __( 'Seleziona una o più strutture', 'design_scuole_italia' ),
+            ),
+	) ) );
 
-	$cmb_user->add_field(array(
-		'name'    => __('Funzioni strumentali', 'design_scuole_italia'),
-		'desc'    => __('Definisci qui altre funzioni strumentali attribuite', 'design_scuole_italia'),
+	$cmb_user->add_field( dsi_persona_organizzazione_field( array(
+		'name'    => __( 'Funzioni strumentali', 'design_scuole_italia' ),
+		'desc'    => __( 'Definisci qui altre funzioni strumentali attribuite', 'design_scuole_italia' ),
 		'id'      => $prefix . 'altri_ruoli_funzioni_strumentali',
 		'type'    => 'textarea',
-		'attributes'    => array(
-			'data-conditional-id'     => $prefix . 'ruolo_scuola',
-			'data-conditional-value'  => wp_json_encode(array('docente', 'personaleata'))
-		),
-	));
+        'attributes'    => array(
+            'data-conditional-id'     => $prefix . 'ruolo_scuola',
+            'data-conditional-value'  => wp_json_encode(array('docente','personaleata'))
+        ),
+	) ) );
 
-	$cmb_user->add_field(array(
-		'name'    => __('Altri ruoli di referente', 'design_scuole_italia'),
-		'desc'    => __('Definisci qui ruoli di referente attribuiti (dove non sono previste strutture o funzioni strumentali) ', 'design_scuole_italia'),
+	$cmb_user->add_field( dsi_persona_organizzazione_field( array(
+		'name'    => __( 'Altri ruoli di referente', 'design_scuole_italia' ),
+		'desc'    => __( 'Definisci qui ruoli di referente attribuiti (dove non sono previste strutture o funzioni strumentali) ', 'design_scuole_italia' ),
 		'id'      => $prefix . 'altri_ruoli_referente',
 		'type'    => 'textarea',
-		'attributes'    => array(
-			'data-conditional-id'     => $prefix . 'ruolo_scuola',
-			'data-conditional-value'  => wp_json_encode(array('docente', 'personaleata'))
-		),
-	));
+        'attributes'    => array(
+            'data-conditional-id'     => $prefix . 'ruolo_scuola',
+            'data-conditional-value'  => wp_json_encode(array('docente','personaleata'))
+        ),
+	) ) );
 
-	$cmb_user->add_field(array(
-		'name'    => __('Altri ruoli', 'design_scuole_italia'),
-		'desc'    => __('Definisci qui altri ruoli (per componenti strutture, funzioni strumentali o referenti riferirsi agli altri campi previsti) ', 'design_scuole_italia'),
+	$cmb_user->add_field( dsi_persona_organizzazione_field( array(
+		'name'    => __( 'Altri ruoli', 'design_scuole_italia' ),
+		'desc'    => __( 'Definisci qui altri ruoli (per componenti strutture, funzioni strumentali o referenti riferirsi agli altri campi previsti) ', 'design_scuole_italia' ),
 		'id'      => $prefix . 'altri_ruoli',
 		'type'    => 'textarea',
-		'attributes'    => array(
-			'data-conditional-id'     => $prefix . 'ruolo_scuola',
-			'data-conditional-value'  => wp_json_encode(array('docente', 'personaleata'))
-		),
-	));
+        'attributes'    => array(
+            'data-conditional-id'     => $prefix . 'ruolo_scuola',
+            'data-conditional-value'  => wp_json_encode(array('docente','personaleata'))
+        ),
+	) ) );
 
 
 	$cmb_user->add_field(array(

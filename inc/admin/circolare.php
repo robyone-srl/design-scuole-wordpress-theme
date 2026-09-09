@@ -177,7 +177,7 @@ function dsi_add_circolare_metaboxes() {
     $cmb_backend->add_field(array(
         'id' => $prefix . 'circolare_title',
         'name' => __('Notifiche agli utenti', 'design_scuole_italia'),
-        'desc' => __('Le circolari inviano notifiche al destinatario, e rendono visibile la circolare sulla sua bacheca utente.<br> NB: Le notifiche vengono inviate <b>al primo salvataggio dell\'articolo in stato "pubblicato"</b>. <b>Da quel momento in poi cambiamenti nei campi che seguono non genereranno notifiche agli utenti</b>.' , 'design_scuole_italia'),
+        'desc' => __('Le circolari notificano i destinatari in bacheca e, se le email non sono disabilitate in Configurazione &gt; Altro, inviano una mail.<br> NB: Le notifiche vengono inviate <b>al primo salvataggio dell\'articolo in stato "pubblicato"</b>. <b>Da quel momento in poi cambiamenti nei campi che seguono non genereranno nuove notifiche agli utenti</b>.' , 'design_scuole_italia'),
         'type' => 'title',
     ));
 
@@ -282,10 +282,15 @@ add_action( 'save_post', 'dsi_feedback_circolare', 100, 2 );
 function dsi_feedback_circolare( $post_id, $post )
 {
 
-    if ( 'publish' !== $post->post_status)
+    if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
         return;
+    }
 
-    if ( dsi_get_option("mail_circolare_non_inviare", "setup") )
+    if ( wp_is_post_revision( $post_id ) ) {
+        return;
+    }
+
+    if ( 'publish' !== $post->post_status)
         return;
 
     if ( 'circolare' !== $post->post_type )
@@ -296,11 +301,6 @@ function dsi_feedback_circolare( $post_id, $post )
     if($notificato == "true")
         return; // già notificato, non procedo
 
-    $require_feedback = dsi_get_meta("require_feedback", '', $post->ID);
-
-    if($require_feedback == "false")
-        return;
-
     // recupero la selezione destinatari
     $destinatari_circolari = dsi_get_meta("destinatari_circolari", '', $post->ID);
     $users = array();
@@ -309,10 +309,14 @@ function dsi_feedback_circolare( $post_id, $post )
         $users = get_users( array( 'fields' => 'ID' ) );
     }else if($destinatari_circolari == "ruolo"){
         $ruoli_circolari = dsi_get_meta("ruoli_circolari", '', $post->ID);
-        $users = get_users( array( 'role__in' => $ruoli_circolari, 'fields' => 'ID' ) );
+        if ( is_array( $ruoli_circolari ) && count( $ruoli_circolari ) ) {
+            $users = get_users( array( 'role__in' => $ruoli_circolari, 'fields' => 'ID' ) );
+        }
     }else if($destinatari_circolari == "gruppo"){
         $gruppi_circolari = dsi_get_meta("gruppi_circolari", '', $post->ID);
-        $users = get_objects_in_term( $gruppi_circolari, "gruppo-utente" );
+        if ( ! empty( $gruppi_circolari ) ) {
+            $users = get_objects_in_term( $gruppi_circolari, "gruppo-utente" );
+        }
     }
 
     if(is_array($users) && count($users)){
@@ -345,6 +349,13 @@ function dsi_save_sign_init(){
             if ( ! wp_verify_nonce( $nonce, 'sign' ) ) {
                 die( 'Security check' );
             } else {
+                $require_feedback = dsi_get_meta("require_feedback", "", $post->ID);
+                $allowed_sign_values = dsi_get_circolare_allowed_sign_values( $require_feedback );
+                $sign_value = sanitize_key( $_REQUEST["sign"] );
+                if ( ! in_array( $sign_value, $allowed_sign_values, true ) ) {
+                    die( 'Valore non valido' );
+                }
+
                 // registro la firma sul post
                 $signed = get_post_meta($post->ID, "_dsi_has_signed", true);
                 if(!$signed)
@@ -355,13 +366,7 @@ function dsi_save_sign_init(){
                 }
                 update_post_meta($post->ID, "_dsi_has_signed", $signed);
                 // registro la tipologia di firma sull'utente
-                $allowed_sign_values = array_keys( dsi_get_circolari_feedback_options() );
-                $sign_value = sanitize_key( $_REQUEST["sign"] );
-                if ( in_array( $sign_value, $allowed_sign_values, true ) ) {
-                    update_user_meta($current_user->ID, "_dsi_signed_".$post->ID, $sign_value);
-                } else {
-                    die( 'Valore non valido' );
-                }
+                update_user_meta($current_user->ID, "_dsi_signed_".$post->ID, $sign_value);
 
                 // tolgo l'id post dalla lista circolari utente
                 $lista_circolari = get_user_meta($current_user->ID, "_dsi_circolari", true);
